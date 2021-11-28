@@ -1,63 +1,62 @@
 package com.nikita.lock;
 
-import com.nikita.exception.ObjectLockedException;
 import com.nikita.helper.RandomHelper;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * 1.1 - Create implementation via CAS (Atomic)
+ * for synchronized, wait, notify, notifyAll
+ */
 public class Mutex {
-    private Set<Thread> waitingThreads;
-    private Set<Thread> lockThreads;
+    private final Set<Thread> waitingThreads;
+    private final AtomicReference<Thread> lockThread;
 
-    private static final int WAIT_SLEEP_TIME_MS = 300;
+    private static final int SLEEP_TIME_MS = 300;
 
     public Mutex() {
         waitingThreads = new HashSet<>();
-        lockThreads = new HashSet<>();
+        lockThread = new AtomicReference<>(null);
     }
 
-    public void _lock() throws ObjectLockedException {
+    public void _lock() throws InterruptedException {
         /**
-         * Object is already locked - throw an exception
+         * Obtaining a lock
+         * If object is already locked - throw an exception
          */
-        if (this._isLocked() == true) {
-            throw new ObjectLockedException();
+        while (!this.lockThread.compareAndSet(null, Thread.currentThread())) {
+            Thread.sleep(SLEEP_TIME_MS);
         }
-
-        lockThreads.add(Thread.currentThread());
     }
 
     public void _release() {
-        lockThreads.remove(Thread.currentThread());
+        lockThread.set(null);
     }
 
     public boolean _isLocked() {
-        return lockThreads.size() > 0;
+        return lockThread.get() != null;
     }
 
-    void _wait() throws InterruptedException {
+    public void _wait() throws InterruptedException {
         waitingThreads.add(Thread.currentThread());
         this._release();
 
         while (waitingThreads.contains(Thread.currentThread())) {
-            Thread.sleep(WAIT_SLEEP_TIME_MS);
+            Thread.sleep(SLEEP_TIME_MS);
         }
 
-        while (!lockThreads.contains(Thread.currentThread())) {
-            try {
-                this._lock();
-            } catch (ObjectLockedException err) {
-                continue;
-            }
+        this._lock();
+    }
+
+    public void _notify() {
+        if (waitingThreads.size() > 0) {
+            waitingThreads.remove(RandomHelper.randomItemFromSet(waitingThreads));
         }
     }
 
-    void _notify() {
-        waitingThreads.remove(RandomHelper.randomItemFromSet(waitingThreads));
-    }
-
-    void _notifyAll() {
+    public void _notifyAll() {
         waitingThreads.clear();
     }
 }
