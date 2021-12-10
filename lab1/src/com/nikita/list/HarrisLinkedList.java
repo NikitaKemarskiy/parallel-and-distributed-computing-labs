@@ -2,17 +2,44 @@ package com.nikita.list;
 
 import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * It's a naive implementation of a Harris's solution.
+ * So there are still problems like:
+ * 1. Concurrent insert and delete
+ * 2. Concurrent deletions
+ * @param <T>
+ */
 public class HarrisLinkedList<T> implements NonBlockingList<T> {
-    private volatile AtomicReference<HarrisLinkedListNode<T>> head;
+    private volatile AtomicReference<Node<T>> head;
     private volatile int size;
 
-    public HarrisLinkedList() {
-        head = new AtomicReference<>(null);
-        size = 0;
+    private static class Node<T> {
+        private T value;
+        private AtomicReference<Node<T>> next;
+
+        public Node(T value) {
+            this.value = value;
+        }
+
+        public T getValue() {
+            return value;
+        }
+
+        public void setValue(T value) {
+            this.value = value;
+        }
+
+        public AtomicReference<Node<T>> getNext() {
+            return next;
+        }
+
+        public void setNext(AtomicReference<Node<T>> next) {
+            this.next = next;
+        }
     }
 
-    private AtomicReference<HarrisLinkedListNode<T>> getNodeAtomicReference(int index) {
-        AtomicReference<HarrisLinkedListNode<T>> currNodeAtomicReference = head;
+    private AtomicReference<Node<T>> getNodeAtomicReference(int index) {
+        AtomicReference<Node<T>> currNodeAtomicReference = head;
         int currIndex = 0;
 
         while (currIndex < index && currNodeAtomicReference.get().getNext() != null) {
@@ -21,6 +48,11 @@ public class HarrisLinkedList<T> implements NonBlockingList<T> {
         }
 
         return currIndex == index ? currNodeAtomicReference : null;
+    }
+
+    public HarrisLinkedList() {
+        head = new AtomicReference<>(null);
+        size = 0;
     }
 
     /**
@@ -36,8 +68,8 @@ public class HarrisLinkedList<T> implements NonBlockingList<T> {
      * @param elem - Element to add
      */
     public void add(int index, T elem) {
-        HarrisLinkedListNode<T> node = new HarrisLinkedListNode<>(elem);
-        AtomicReference<HarrisLinkedListNode<T>> prevNode;
+        Node<T> node = new Node<>(elem);
+        AtomicReference<Node<T>> prevNode;
 
         while (true) {
             /**
@@ -73,8 +105,8 @@ public class HarrisLinkedList<T> implements NonBlockingList<T> {
     }
 
     public void remove(int index) {
-        AtomicReference<HarrisLinkedListNode<T>> node;
-        AtomicReference<HarrisLinkedListNode<T>> prevNode;
+        AtomicReference<Node<T>> node;
+        AtomicReference<Node<T>> prevNode;
 
         while (true) {
             node = getNodeAtomicReference(index);
