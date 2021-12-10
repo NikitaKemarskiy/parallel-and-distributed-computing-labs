@@ -42,6 +42,16 @@ public class MichaelAndScottQueue<T> implements NonBlockingQueue<T> {
     }
 
     public T remove(int index) {
-        //
+        while (true) {
+            AtomicReference<Node<T>> node = head.get().getNext();
+
+            if (node == null) {
+                return null;
+            }
+
+            if (head.get().getNext().compareAndSet(node.get(), node.get().getNext().get())) {
+                return node.get().getValue();
+            }
+        }
     }
 }

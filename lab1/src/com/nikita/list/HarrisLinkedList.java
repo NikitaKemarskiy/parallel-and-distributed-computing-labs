@@ -116,16 +116,24 @@ public class HarrisLinkedList<T> implements NonBlockingList<T> {
              * there's only one element in list.
              * Set null as head
              */
-            if (index == 0 && head.get().getNext() == null) {
-                head.compareAndSet(node.get(), null);
+            if (
+                index == 0 &&
+                head.get().getNext() == null &&
+                head.compareAndSet(node.get(), null)
+            ) {
+                break;
             }
             /**
              * Remove the first element when
              * there're multiple elements in list.
              * Set the second element as head
              */
-            else if (index == 0 && head.get().getNext() != null) {
-                head.compareAndSet(node.get(), node.get().getNext().get());
+            else if (
+                index == 0 &&
+                head.get().getNext() != null &&
+                head.compareAndSet(node.get(), node.get().getNext().get())
+            ) {
+                break;
             }
             /**
              * Remove any element except the first
