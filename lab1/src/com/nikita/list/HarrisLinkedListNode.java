@@ -1,23 +1,28 @@
 package com.nikita.list;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 public class HarrisLinkedListNode<T> {
-    private T elem;
-    private HarrisLinkedListNode next;
+    private T value;
+    private AtomicReference<HarrisLinkedListNode<T>> next;
 
-    public HarrisLinkedListNode(T elem) {
-        this.elem = elem;
+    public HarrisLinkedListNode(T value) {
+        this.value = value;
     }
 
-    public HarrisLinkedListNode(T elem, HarrisLinkedListNode next) {
-        this.elem = elem;
-        this.next = next;
+    public T getValue() {
+        return value;
     }
 
-    public HarrisLinkedListNode getNext() {
+    public void setValue(T value) {
+        this.value = value;
+    }
+
+    public AtomicReference<HarrisLinkedListNode<T>> getNext() {
         return next;
     }
 
-    public void setNext(HarrisLinkedListNode next) {
+    public void setNext(AtomicReference<HarrisLinkedListNode<T>> next) {
         this.next = next;
     }
 }
