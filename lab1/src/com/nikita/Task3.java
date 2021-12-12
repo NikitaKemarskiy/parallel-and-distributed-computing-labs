@@ -20,6 +20,16 @@ public class Task3 implements Runnable {
         thread1.start();
         thread2.start();
         thread3.start();
+
+        try {
+            thread1.join();
+            thread2.join();
+            thread3.join();
+        } catch (InterruptedException err) {
+            System.err.println(err);
+        }
+
+        System.out.println(queue.traverse());
     }
 
     public void run() {
@@ -28,7 +38,5 @@ public class Task3 implements Runnable {
         queue.add(3);
         queue.remove();
         queue.remove();
-
-        System.out.println(">>> Finish thread " + Thread.currentThread().getName() + ": " + queue.traverse());
     }
 }

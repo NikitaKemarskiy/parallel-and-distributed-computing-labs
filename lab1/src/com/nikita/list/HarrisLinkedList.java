@@ -1,7 +1,5 @@
 package com.nikita.list;
 
-import com.nikita.queue.MichaelAndScottQueue;
-
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -141,6 +139,7 @@ public class HarrisLinkedList<T> implements NonBlockingList<T> {
                 head.get().getNext() == null
             ) {
                 if (head.compareAndSet(node, null)) {
+                    size--;
                     break;
                 }
             }
@@ -154,6 +153,7 @@ public class HarrisLinkedList<T> implements NonBlockingList<T> {
                 head.get().getNext() != null
             ) {
                 if (head.compareAndSet(node, node.getNext())) {
+                    size--;
                     break;
                 }
             }
@@ -164,6 +164,7 @@ public class HarrisLinkedList<T> implements NonBlockingList<T> {
                 prevNode = getNode(index - 1);
 
                 if (prevNode.compareAndSetNext(node, node.getNext())) {
+                    size--;
                     break;
                 }
             }
