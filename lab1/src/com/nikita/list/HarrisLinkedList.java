@@ -1,6 +1,11 @@
 package com.nikita.list;
 
+import com.nikita.queue.MichaelAndScottQueue;
+
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 /**
  * It's a naive implementation of a Harris's solution.
@@ -86,9 +91,11 @@ public class HarrisLinkedList<T> implements NonBlockingList<T> {
             /**
              * Head is empty - add an element as head
              */
-            if (head.get() == null && head.compareAndSet(null, node)) {
-                size++;
-                break;
+            if (head.get() == null) {
+                if (head.compareAndSet(null, node)) {
+                    size++;
+                    break;
+                }
             }
             /**
              * Head isn't empty - add an element by index
@@ -131,10 +138,11 @@ public class HarrisLinkedList<T> implements NonBlockingList<T> {
              */
             if (
                 index == 0 &&
-                head.get().getNext() == null &&
-                head.compareAndSet(node, null)
+                head.get().getNext() == null
             ) {
-                break;
+                if (head.compareAndSet(node, null)) {
+                    break;
+                }
             }
             /**
              * Remove the first element when
@@ -143,18 +151,21 @@ public class HarrisLinkedList<T> implements NonBlockingList<T> {
              */
             else if (
                 index == 0 &&
-                head.get().getNext() != null &&
-                head.compareAndSet(node, node.getNext())
+                head.get().getNext() != null
             ) {
-                break;
+                if (head.compareAndSet(node, node.getNext())) {
+                    break;
+                }
             }
             /**
-             * Remove any element except the first
+             * Remove not the first element
              */
             else {
                 prevNode = getNode(index - 1);
 
-                prevNode.compareAndSetNext(node, node.getNext());
+                if (prevNode.compareAndSetNext(node, node.getNext())) {
+                    break;
+                }
             }
         }
     }
@@ -162,5 +173,18 @@ public class HarrisLinkedList<T> implements NonBlockingList<T> {
     @Override
     public T get(int index) {
         return getNode(index).getValue();
+    }
+
+    @Override
+    public String traverse() {
+        Node<T> currNode = head.get();
+        List<String> out = new LinkedList<>();
+
+        while (currNode != null) {
+            out.add(currNode.getValue().toString());
+            currNode = currNode.getNext();
+        }
+
+        return out.stream().collect(Collectors.joining(","));
     }
 }

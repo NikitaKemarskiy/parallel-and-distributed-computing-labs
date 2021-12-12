@@ -1,6 +1,9 @@
-package com.nikita.list;
+package com.nikita.queue;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 public class MichaelAndScottQueue<T> implements NonBlockingQueue<T> {
     private volatile Node<T> head;
@@ -47,7 +50,11 @@ public class MichaelAndScottQueue<T> implements NonBlockingQueue<T> {
                 tail = node;
                 break;
             } else {
-                tail = tail.getNext();
+                Node nextNode = tail.getNext();
+
+                if (nextNode != null) {
+                    tail = nextNode;
+                }
             }
         }
     }
@@ -69,5 +76,18 @@ public class MichaelAndScottQueue<T> implements NonBlockingQueue<T> {
                 return node.getValue();
             }
         }
+    }
+
+    @Override
+    public String traverse() {
+        Node<T> currNode = head.getNext();
+        List<String> out = new LinkedList<>();
+
+        while (currNode != null) {
+            out.add(currNode.getValue().toString());
+            currNode = currNode.getNext();
+        }
+
+        return out.stream().collect(Collectors.joining(","));
     }
 }
