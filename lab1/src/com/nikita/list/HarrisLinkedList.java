@@ -19,6 +19,7 @@ public class HarrisLinkedList<T> implements NonBlockingList<T> {
 
         public Node(T value) {
             this.value = value;
+            this.next = new AtomicReference<>(null);
         }
 
         public T getValue() {
@@ -29,25 +30,32 @@ public class HarrisLinkedList<T> implements NonBlockingList<T> {
             this.value = value;
         }
 
-        public AtomicReference<Node<T>> getNext() {
-            return next;
+        public Node<T> getNext() {
+            return next.get();
         }
 
-        public void setNext(AtomicReference<Node<T>> next) {
-            this.next = next;
+        public void setNext(Node<T> next) {
+            this.next.set(next);
+        }
+
+        public boolean compareAndSetNext(Node<T> expected, Node<T> next) {
+            return this.next.compareAndSet(expected, next);
         }
     }
 
-    private AtomicReference<Node<T>> getNodeAtomicReference(int index) {
-        AtomicReference<Node<T>> currNodeAtomicReference = head;
+    private Node<T> getNode(int index) {
+        Node<T> currNode = head.get();
         int currIndex = 0;
 
-        while (currIndex < index && currNodeAtomicReference.get().getNext() != null) {
-            currNodeAtomicReference = currNodeAtomicReference.get().getNext();
+        while (
+            currIndex < index &&
+            currNode != null
+        ) {
+            currNode = currNode.getNext();
             currIndex++;
         }
 
-        return currIndex == index ? currNodeAtomicReference : null;
+        return currIndex == index ? currNode : null;
     }
 
     public HarrisLinkedList() {
@@ -59,6 +67,7 @@ public class HarrisLinkedList<T> implements NonBlockingList<T> {
      * Add element to the ending of the list
      * @param elem - Element to add
      */
+    @Override
     public void add(T elem) {
         add(-1, elem);
     }
@@ -67,9 +76,11 @@ public class HarrisLinkedList<T> implements NonBlockingList<T> {
      * @param index - Index to add an element (if index == -1 - add element to the ending of the list)
      * @param elem - Element to add
      */
+    @Override
     public void add(int index, T elem) {
         Node<T> node = new Node<>(elem);
-        AtomicReference<Node<T>> prevNode;
+        Node<T> prevNode;
+        Node<T> nextNode;
 
         while (true) {
             /**
@@ -88,15 +99,16 @@ public class HarrisLinkedList<T> implements NonBlockingList<T> {
                  * If yes then insert element
                  * at the ending of the list
                  */
-                prevNode = getNodeAtomicReference(index == -1 ? size - 1 : index - 1);
+                prevNode = getNode(index == -1 ? size - 1 : index - 1);
 
                 if (prevNode == null) {
                     continue;
                 }
 
-                node.setNext(prevNode.get().getNext());
+                nextNode = prevNode.getNext();
+                node.setNext(nextNode);
 
-                if (prevNode.get().getNext().compareAndSet(prevNode.get().getNext().get(), node)) {
+                if (prevNode.compareAndSetNext(nextNode, node)) {
                     size++;
                     break;
                 }
@@ -104,12 +116,13 @@ public class HarrisLinkedList<T> implements NonBlockingList<T> {
         }
     }
 
+    @Override
     public void remove(int index) {
-        AtomicReference<Node<T>> node;
-        AtomicReference<Node<T>> prevNode;
+        Node<T> node;
+        Node<T> prevNode;
 
         while (true) {
-            node = getNodeAtomicReference(index);
+            node = getNode(index);
 
             /**
              * Remove the first element when
@@ -119,7 +132,7 @@ public class HarrisLinkedList<T> implements NonBlockingList<T> {
             if (
                 index == 0 &&
                 head.get().getNext() == null &&
-                head.compareAndSet(node.get(), null)
+                head.compareAndSet(node, null)
             ) {
                 break;
             }
@@ -131,7 +144,7 @@ public class HarrisLinkedList<T> implements NonBlockingList<T> {
             else if (
                 index == 0 &&
                 head.get().getNext() != null &&
-                head.compareAndSet(node.get(), node.get().getNext().get())
+                head.compareAndSet(node, node.getNext())
             ) {
                 break;
             }
@@ -139,14 +152,15 @@ public class HarrisLinkedList<T> implements NonBlockingList<T> {
              * Remove any element except the first
              */
             else {
-                prevNode = getNodeAtomicReference(index - 1);
+                prevNode = getNode(index - 1);
 
-                prevNode.get().getNext().compareAndSet(node.get(), node.get().getNext().get());
+                prevNode.compareAndSetNext(node, node.getNext());
             }
         }
     }
 
+    @Override
     public T get(int index) {
-        return getNodeAtomicReference(index).get().getValue();
+        return getNode(index).getValue();
     }
 }

@@ -3,8 +3,8 @@ package com.nikita.list;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class MichaelAndScottQueue<T> implements NonBlockingQueue<T> {
-    private volatile AtomicReference<Node<T>> head;
-    private volatile AtomicReference<Node<T>> tail;
+    private volatile Node<T> head;
+    private volatile Node<T> tail;
 
     private static class Node<T> {
         private T value;
@@ -12,6 +12,7 @@ public class MichaelAndScottQueue<T> implements NonBlockingQueue<T> {
 
         public Node(T value) {
             this.value = value;
+            this.next = new AtomicReference<>(null);
         }
 
         public T getValue() {
@@ -22,35 +23,50 @@ public class MichaelAndScottQueue<T> implements NonBlockingQueue<T> {
             this.value = value;
         }
 
-        public AtomicReference<Node<T>> getNext() {
-            return next;
+        public Node<T> getNext() {
+            return next.get();
         }
 
-        public void setNext(AtomicReference<Node<T>> next) {
-            this.next = next;
+        public boolean compareAndSetNext(Node<T> expected, Node<T> next) {
+            return this.next.compareAndSet(expected, next);
         }
     }
 
     public MichaelAndScottQueue() {
         Node dummyNode = new Node(null);
-        head = new AtomicReference<>(dummyNode);
-        tail = new AtomicReference<>(dummyNode);
+        head = dummyNode;
+        tail = dummyNode;
     }
 
+    @Override
     public void add(T elem) {
-        //
+        Node<T> node = new Node(elem);
+
+        while (true) {
+            if (tail.compareAndSetNext(null, node)) {
+                tail = node;
+                break;
+            } else {
+                tail = tail.getNext();
+            }
+        }
     }
 
-    public T remove(int index) {
+    @Override
+    public T remove() {
+        Node<T> node;
+
         while (true) {
-            AtomicReference<Node<T>> node = head.get().getNext();
+            node = head.getNext();
 
             if (node == null) {
                 return null;
             }
 
-            if (head.get().getNext().compareAndSet(node.get(), node.get().getNext().get())) {
-                return node.get().getValue();
+            if (head == tail) {
+                tail = node;
+            } else if (head.compareAndSetNext(node, node.getNext())) {
+                return node.getValue();
             }
         }
     }
