@@ -101,7 +101,7 @@ public class SkipList<T extends Comparable<T>> {
              */
             if (
                 rightNode != null &&
-                rightNode.getValue().compareTo(elem) != 1
+                rightNode.getValue().compareTo(elem) == -1
             ) {
                 currNode = rightNode;
             } else {
@@ -125,8 +125,31 @@ public class SkipList<T extends Comparable<T>> {
         }
     }
 
-    public void remove(int index) {
+    public void remove(T elem) {
+        Node<T> currNode = getHeadBottomNode();
 
+        while (currNode != null) {
+            Node<T> rightNode = currNode.getRightNode();
+
+            /**
+             * Right node is less than a node to add.
+             * Proceed to the right node.
+             */
+            if (
+                rightNode != null &&
+                rightNode.getValue().compareTo(elem) == -1
+            ) {
+                currNode = rightNode;
+            } else if (
+                rightNode != null &&
+                rightNode.getValue().compareTo(elem) == 0
+            ) {
+                currNode.setRightNode(rightNode.getRightNode());
+                currNode = currNode.getLowerNode();
+            } else {
+                currNode = currNode.getLowerNode();
+            }
+        }
     }
 
     public boolean contains(T elem) {
