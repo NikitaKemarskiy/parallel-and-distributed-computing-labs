@@ -35,7 +35,7 @@ public class Task4 implements Runnable {
     public void run() {
         list.add(1);
         list.add(2);
-        list.add(1, 3);
+        list.add(3);
         list.remove(0);
     }
 }

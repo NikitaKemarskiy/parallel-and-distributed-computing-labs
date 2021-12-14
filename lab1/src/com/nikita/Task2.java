@@ -45,7 +45,6 @@ public class Task2 implements Runnable {
         list.add(1);
         list.add(2);
         list.add(3);
-        list.remove(2);
-        // list.remove(getRandomInt(1, 3));
+        list.remove(getRandomInt(1, 4));
     }
 }
