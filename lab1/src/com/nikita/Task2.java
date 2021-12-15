@@ -21,13 +21,13 @@ public class Task2 implements Runnable {
         Thread thread3 = new Thread(new Task2(list));
 
         thread1.start();
-        // thread2.start();
-        // thread3.start();
+        thread2.start();
+        thread3.start();
 
         try {
             thread1.join();
-            // thread2.join();
-            // thread3.join();
+            thread2.join();
+            thread3.join();
         } catch (InterruptedException err) {
             System.err.println(err);
         }

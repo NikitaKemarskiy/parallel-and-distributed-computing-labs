@@ -3,6 +3,7 @@ package com.nikita.list;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public class SkipList<T extends Comparable<T>> {
@@ -12,13 +13,15 @@ public class SkipList<T extends Comparable<T>> {
     private static int DEFAULT_MAX_HEIGHT = 32;
     private static class Node<T> {
         private T value;
-        private Node<T> rightNode;
-        private Node<T> lowerNode;
+        private AtomicReference<Node<T>> rightNode;
+        private AtomicReference<Node<T>> lowerNode;
+        private boolean toBeDeleted;
 
         public Node(T value) {
             this.value = value;
-            this.rightNode = null;
-            this.lowerNode = null;
+            this.rightNode = new AtomicReference<>(null);
+            this.lowerNode = new AtomicReference<>(null);
+            this.toBeDeleted = false;
         }
 
         public T getValue() {
@@ -30,19 +33,35 @@ public class SkipList<T extends Comparable<T>> {
         }
 
         public Node<T> getRightNode() {
-            return rightNode;
+            return rightNode.get();
         }
 
         public void setRightNode(Node<T> rightNode) {
-            this.rightNode = rightNode;
+            this.rightNode.set(rightNode);
         }
 
         public Node<T> getLowerNode() {
-            return lowerNode;
+            return lowerNode.get();
         }
 
         public void setLowerNode(Node<T> lowerNode) {
-            this.lowerNode = lowerNode;
+            this.lowerNode.set(lowerNode);
+        }
+
+        public boolean isToBeDeleted() {
+            return toBeDeleted;
+        }
+
+        public void setToBeDeleted(boolean toBeDeleted) {
+            this.toBeDeleted = toBeDeleted;
+        }
+
+        public boolean compareAndSetRightNode(Node<T> expected, Node<T> next) {
+            return !toBeDeleted && this.rightNode.compareAndSet(expected, next);
+        }
+
+        public boolean compareAndSetLowerNode(Node<T> expected, Node<T> next) {
+            return this.lowerNode.compareAndSet(expected, next);
         }
     }
 
@@ -79,7 +98,7 @@ public class SkipList<T extends Comparable<T>> {
 
         for (int i = 1; i < maxHeight; i++) {
             Node<T> nextNode = new Node(null);
-            currNode.setLowerNode(nextNode);
+            currNode.compareAndSetLowerNode(null, nextNode);
 
             currNode = nextNode;
         }
@@ -107,19 +126,20 @@ public class SkipList<T extends Comparable<T>> {
                 Node<T> node = new Node(elem);
 
                 node.setRightNode(rightNode);
-                currNode.setRightNode(node);
 
-                currNode = currNode.getLowerNode();
+                if (currNode.compareAndSetRightNode(rightNode, node)) {
+                    currNode = currNode.getLowerNode();
 
-                /**
-                 * Set added node as a lower node for
-                 * previously added node.
-                 */
-                if (prevAddedNode != null) {
-                    prevAddedNode.setLowerNode(node);
+                    /**
+                     * Set added node as a lower node for
+                     * previously added node.
+                     */
+                    if (prevAddedNode != null) {
+                        prevAddedNode.setLowerNode(node);
+                    }
+
+                    prevAddedNode = node;
                 }
-
-                prevAddedNode = node;
             }
         }
     }
@@ -143,8 +163,13 @@ public class SkipList<T extends Comparable<T>> {
                 rightNode != null &&
                 rightNode.getValue().compareTo(elem) == 0
             ) {
-                currNode.setRightNode(rightNode.getRightNode());
-                currNode = currNode.getLowerNode();
+                rightNode.setToBeDeleted(true);
+
+                if (currNode.compareAndSetRightNode(rightNode, rightNode.getRightNode())) {
+                    currNode = currNode.getLowerNode();
+                } else {
+                    rightNode.setToBeDeleted(false);
+                }
             } else {
                 currNode = currNode.getLowerNode();
             }
