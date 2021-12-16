@@ -15,12 +15,14 @@ public class SkipList<T extends Comparable<T>> {
         private T value;
         private AtomicReference<Node<T>> rightNode;
         private AtomicReference<Node<T>> lowerNode;
+        private int height;
         private boolean toBeDeleted;
 
-        public Node(T value) {
+        public Node(T value, int height) {
             this.value = value;
             this.rightNode = new AtomicReference<>(null);
             this.lowerNode = new AtomicReference<>(null);
+            this.height = height;
             this.toBeDeleted = false;
         }
 
@@ -46,6 +48,14 @@ public class SkipList<T extends Comparable<T>> {
 
         public void setLowerNode(Node<T> lowerNode) {
             this.lowerNode.set(lowerNode);
+        }
+
+        public int getHeight() {
+            return height;
+        }
+
+        public void setHeight(int height) {
+            this.height = height;
         }
 
         public boolean isToBeDeleted() {
@@ -91,13 +101,12 @@ public class SkipList<T extends Comparable<T>> {
     }
 
     public SkipList() {
-        Node<T> currNode = new Node(null);
-
         maxHeight = DEFAULT_MAX_HEIGHT;
+        Node<T> currNode = new Node(null, DEFAULT_MAX_HEIGHT);
         headTop = currNode;
 
         for (int i = 1; i < maxHeight; i++) {
-            Node<T> nextNode = new Node(null);
+            Node<T> nextNode = new Node(null, maxHeight);
             currNode.compareAndSetLowerNode(null, nextNode);
 
             currNode = nextNode;
@@ -123,7 +132,7 @@ public class SkipList<T extends Comparable<T>> {
             ) {
                 currNode = rightNode;
             } else {
-                Node<T> node = new Node(elem);
+                Node<T> node = new Node(elem, height);
 
                 node.setRightNode(rightNode);
 
@@ -204,10 +213,10 @@ public class SkipList<T extends Comparable<T>> {
         List<String> out = new LinkedList<>();
 
         while (currNode != null) {
-            out.add(currNode.getValue().toString());
+            out.add(String.format("{ Value: %s, height: %d }", currNode.getValue().toString(), currNode.getHeight()));
             currNode = currNode.getRightNode();
         }
 
-        return out.stream().collect(Collectors.joining(","));
+        return out.stream().collect(Collectors.joining(", "));
     }
 }
